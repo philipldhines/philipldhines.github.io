@@ -1,12 +1,13 @@
 
-# Cloud Foundation Toolkit Lab - 00-Setup
+# Managing infrastructure as code with Terraform, Jenkins and GitOps
 
-## 0. Prerequisite
+This tutorial explains how to manage infrastructure as code with Terraform and Jenkins using the popular GitOps methodology. The tutorial is for developers and operators who are looking for best practices to manage infrastructure the way they manage software applications. The article assumes you are familiar with Terraform, Jenkins, GitHub, Google Kubernetes Engine (GKE), and Google Cloud.
 
-* A [GCP Project](https://cloud.google.com/resource-manager/docs/creating-managing-projects#creating_a_project) linked with a valid biiling account
-* [Project IAM Admin](https://cloud.google.com/iam/docs/understanding-roles#resource-manager-roles) (**roles/resourcemanager.projectIamAdmin**) for your GCP account
+## Architecture
 
-## 1. What You'll Learn
+The architecture used in this tutorial uses Github branches - dev and prod - to represent actual development and production environments.  These are defined by Virtual Private Cloud (VPC) netwokrs - dev and prod - in a Google Cloud project.
+
+## Infrastructure proposal
 
 * [Google Cloud SDK](https://cloud.google.com/sdk/)
 * [Cloud Shell](https://cloud.google.com/shell/docs)
