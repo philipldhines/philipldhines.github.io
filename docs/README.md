@@ -9,6 +9,9 @@ The architecture used in this tutorial uses Github branches - dev and prod - to 
 
 ## Infrastructure proposal
 
+
+* [Jenkins Helm Chart](https://artifacthub.io/packages/helm/jenkinsci/jenkin)
+
 * [Google Cloud SDK](https://cloud.google.com/sdk/)
 * [Cloud Shell](https://cloud.google.com/shell/docs)
 * [Enable Google Cloud API](https://cloud.google.com/service-usage/docs/enable-disable)
