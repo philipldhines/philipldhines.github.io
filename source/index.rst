@@ -12,7 +12,7 @@ Welcome to philipldhines's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   feature-a.md
+   feature-a
 
 
 Manual 
