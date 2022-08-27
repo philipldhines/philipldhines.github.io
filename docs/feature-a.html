@@ -1,0 +1,204 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>&lt;no title&gt; &#8212; philipldhines 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <p># Managing infrastructure as code with Terraform, Jenkins and GitOps</p>
+<p>This tutorial explains how to manage infrastructure as code with Terraform and Jenkins using the popular GitOps methodology. The tutorial is for developers and operators who are looking for best practices to manage infrastructure the way they manage software applications. The article assumes you are familiar with Terraform, Jenkins, GitHub, Google Kubernetes Engine (GKE), and Google Cloud.</p>
+<p>## Architecture</p>
+<p>The architecture used in this tutorial uses Github branches - dev and prod - to represent actual development and production environments.  These are defined by Virtual Private Cloud (VPC) netwokrs - dev and prod - in a Google Cloud project.</p>
+<p>## Infrastructure proposal</p>
+<ul class="simple">
+<li><p>[Jenkins Helm Chart](<a class="reference external" href="https://artifacthub.io/packages/helm/jenkinsci/jenkin">https://artifacthub.io/packages/helm/jenkinsci/jenkin</a>)</p></li>
+<li><p>[Google Cloud SDK](<a class="reference external" href="https://cloud.google.com/sdk/">https://cloud.google.com/sdk/</a>)</p></li>
+<li><p>[Cloud Shell](<a class="reference external" href="https://cloud.google.com/shell/docs">https://cloud.google.com/shell/docs</a>)</p></li>
+<li><p>[Enable Google Cloud API](<a class="reference external" href="https://cloud.google.com/service-usage/docs/enable-disable">https://cloud.google.com/service-usage/docs/enable-disable</a>)</p></li>
+<li><p>[IAM Roles](<a class="reference external" href="https://cloud.google.com/iam/docs/understanding-roles#iam-roles">https://cloud.google.com/iam/docs/understanding-roles#iam-roles</a>)</p></li>
+<li><p>[Terraform GCP Provider Credential](<a class="reference external" href="https://www.terraform.io/docs/providers/google/guides/getting_started.html#adding-credentials">https://www.terraform.io/docs/providers/google/guides/getting_started.html#adding-credentials</a>)</p></li>
+</ul>
+<p>## 2. Google Cloud SDK</p>
+<p>### 2.1 Install Google Cloud SDK</p>
+<p>You can <strong>skip</strong> this step, if using [Cloud Shell](<a class="reference external" href="https://cloud.google.com/shell/docs">https://cloud.google.com/shell/docs</a>)</p>
+<p>Go to [Google Cloud SDK](<a class="reference external" href="https://cloud.google.com/sdk/docs/downloads-interactive">https://cloud.google.com/sdk/docs/downloads-interactive</a>) and download interactive installer for your platform.</p>
+<p>### 2.2 Setup your training environment</p>
+<p><strong>01 - Environment Variables</strong>
+* Replace <strong>YOUR_PROJECT_ID</strong> with the [GCP Project ID](<a class="reference external" href="https://cloud.google.com/resource-manager/docs/creating-managing-projects#before_you_begin">https://cloud.google.com/resource-manager/docs/creating-managing-projects#before_you_begin</a>) you are using for the training
+* Replace <strong>YOUR_GCP_ACCOUNT_EMAIL</strong> with your GCP account
+* <strong>SERVICE_ACCOUNT</strong> is the [GCP Service Account](<a class="reference external" href="https://cloud.google.com/iam/docs/understanding-service-accounts">https://cloud.google.com/iam/docs/understanding-service-accounts</a>) to run Terraform with
+<code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">export</span> <span class="pre">PROJECT_ID=YOUR_PROJECT_ID</span>
+<span class="pre">export</span> <span class="pre">GCP_ACCOUNT_EMAIL=YOUR_GCP_ACCOUNT_EMAIL</span>
+<span class="pre">export</span> <span class="pre">SERVICE_ACCOUNT=sa-cft-training&#64;${PROJECT_ID}.iam.gserviceaccount.com</span>
+<span class="pre">`</span></code></p>
+<p><strong>02 - Verify the environment variables are set</strong>
+<code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">echo</span> <span class="pre">&quot;Project:</span> <span class="pre">${PROJECT_ID}&quot;</span>
+<span class="pre">echo</span> <span class="pre">&quot;GCP</span> <span class="pre">Account:</span> <span class="pre">${GCP_ACCOUNT_EMAIL}&quot;</span>
+<span class="pre">echo</span> <span class="pre">&quot;Service</span> <span class="pre">Account:</span> <span class="pre">${SERVICE_ACCOUNT}&quot;</span>
+<span class="pre">`</span></code></p>
+<p><strong>03 - Setup &amp; Verify [gcloud configurations](https://cloud.google.com/sdk/gcloud/reference/config) for the training</strong>
+<code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">gcloud</span> <span class="pre">config</span> <span class="pre">configurations</span> <span class="pre">create</span> <span class="pre">cft-training</span>
+<span class="pre">gcloud</span> <span class="pre">config</span> <span class="pre">set</span> <span class="pre">project</span> <span class="pre">${PROJECT_ID}</span>
+<span class="pre">gcloud</span> <span class="pre">config</span> <span class="pre">set</span> <span class="pre">account</span> <span class="pre">${GCP_ACCOUNT_EMAIL}</span>
+<span class="pre">gcloud</span> <span class="pre">config</span> <span class="pre">list</span>
+<span class="pre">`</span></code></p>
+<p><strong>04 - Login and authorize gcloud to access GCP with your training user credential</strong>
+Use the following command to authorize gcloud to run commands on your behalf. Logging in with application-default mode stores temporary credentials in a well-known location locally for applications like Terraform to use.
+<code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">gcloud</span> <span class="pre">auth</span> <span class="pre">application-default</span> <span class="pre">login</span>
+<span class="pre">`</span></code></p>
+<p>## 3. Prepare you training GCP Project</p>
+<p>### 3.1 Google Cloud APIs</p>
+<p><strong>Note</strong>: <strong>Skip</strong> this section if you are attending an organized training session.</p>
+<p>You will need to enable the following Google Cloud APIs on the training project
+* [Service Usage API](<a class="reference external" href="https://cloud.google.com/serviceusage/docs/reference/rest">https://cloud.google.com/serviceusage/docs/reference/rest</a>)
+* [Cloud Resource Manager API](<a class="reference external" href="https://cloud.google.com/resource-manager/reference/rest/">https://cloud.google.com/resource-manager/reference/rest/</a>)
+* [Identity and Access Management (IAM) API](<a class="reference external" href="https://cloud.google.com/iam/docs/reference/rest">https://cloud.google.com/iam/docs/reference/rest</a>)
+<code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">gcloud</span> <span class="pre">services</span> <span class="pre">enable</span> <span class="pre">serviceusage.googleapis.com</span>
+<span class="pre">gcloud</span> <span class="pre">services</span> <span class="pre">enable</span> <span class="pre">cloudresourcemanager.googleapis.com</span>
+<span class="pre">gcloud</span> <span class="pre">services</span> <span class="pre">enable</span> <span class="pre">iam.googleapis.com</span>
+<span class="pre">`</span></code></p>
+<p>### 3.2 IAM roles
+You will need add the following IAM policy binding to the account you’ll be using in your training project
+* <strong>Service Usage Admin</strong> roles/serviceusage.serviceUsageAdmin
+* <strong>Service Account Admin</strong> roles/iam.serviceAccountAdmin
+* <strong>Service Account Key Admin</strong> roles/iam.serviceAccountKeyAdmin
+* <strong>Storage Admin</strong> roles/storage.admin
+* <strong>Logging Admin</strong> logging.admin
+<code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">gcloud</span> <span class="pre">projects</span> <span class="pre">add-iam-policy-binding</span> <span class="pre">${PROJECT_ID}</span> <span class="pre">--member=&quot;user:${GCP_ACCOUNT_EMAIL}&quot;</span> <span class="pre">--role=&quot;roles/serviceusage.serviceUsageAdmin&quot;</span>
+<span class="pre">gcloud</span> <span class="pre">projects</span> <span class="pre">add-iam-policy-binding</span> <span class="pre">${PROJECT_ID}</span> <span class="pre">--member=&quot;user:${GCP_ACCOUNT_EMAIL}&quot;</span> <span class="pre">--role=&quot;roles/iam.serviceAccountAdmin&quot;</span>
+<span class="pre">gcloud</span> <span class="pre">projects</span> <span class="pre">add-iam-policy-binding</span> <span class="pre">${PROJECT_ID}</span> <span class="pre">--member=&quot;user:${GCP_ACCOUNT_EMAIL}&quot;</span> <span class="pre">--role=&quot;roles/iam.serviceAccountKeyAdmin&quot;</span>
+<span class="pre">gcloud</span> <span class="pre">projects</span> <span class="pre">add-iam-policy-binding</span> <span class="pre">${PROJECT_ID}</span> <span class="pre">--member=&quot;user:${GCP_ACCOUNT_EMAIL}&quot;</span> <span class="pre">--role=&quot;roles/storage.admin&quot;</span>
+<span class="pre">gcloud</span> <span class="pre">projects</span> <span class="pre">add-iam-policy-binding</span> <span class="pre">${PROJECT_ID}</span> <span class="pre">--member=&quot;user:${GCP_ACCOUNT_EMAIL}&quot;</span> <span class="pre">--role=&quot;roles/logging.admin&quot;</span>
+<span class="pre">gcloud</span> <span class="pre">projects</span> <span class="pre">add-iam-policy-binding</span> <span class="pre">${PROJECT_ID}</span> <span class="pre">--member=&quot;user:${GCP_ACCOUNT_EMAIL}&quot;</span> <span class="pre">--role=&quot;roles/compute.admin&quot;</span>
+<span class="pre">`</span></code></p>
+<p>### 3.3 Service Account</p>
+<p><strong>Note</strong>: <strong>Skip</strong> this section if you are attending an organized training session.</p>
+<p>Following the [least privilidge principle](<a class="reference external" href="https://cloud.google.com/blog/products/identity-security/dont-get-pwned-practicing-the-principle-of-least-privilege">https://cloud.google.com/blog/products/identity-security/dont-get-pwned-practicing-the-principle-of-least-privilege</a>), create a separate Service Account to run Terraform with.</p>
+<p>#### Create Service Account
+<code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">gcloud</span> <span class="pre">iam</span> <span class="pre">service-accounts</span> <span class="pre">create</span> <span class="pre">sa-cft-training</span> <span class="pre">--description=&quot;CFT</span> <span class="pre">Training</span> <span class="pre">Terraform</span> <span class="pre">Service</span> <span class="pre">Account&quot;</span> <span class="pre">--display-name=&quot;CFT</span> <span class="pre">Training&quot;</span>
+<span class="pre">`</span></code></p>
+<p>#### Verify Service Account
+<code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">gcloud</span> <span class="pre">iam</span> <span class="pre">service-accounts</span> <span class="pre">list</span> <span class="pre">--filter=&quot;EMAIL=${SERVICE_ACCOUNT}&quot;</span>
+<span class="pre">`</span></code></p>
+<p>#### Grant IAM Role</p>
+<p>Grant IAM roles to the Service Account
+* Project IAM Admin
+* Storage Admin
+<code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">gcloud</span> <span class="pre">projects</span> <span class="pre">add-iam-policy-binding</span> <span class="pre">${PROJECT_ID}</span> <span class="pre">--member=&quot;serviceAccount:${SERVICE_ACCOUNT}&quot;</span> <span class="pre">--role=&quot;roles/resourcemanager.projectIamAdmin&quot;</span>
+<span class="pre">gcloud</span> <span class="pre">projects</span> <span class="pre">add-iam-policy-binding</span> <span class="pre">${PROJECT_ID}</span> <span class="pre">--member=&quot;serviceAccount:${SERVICE_ACCOUNT}&quot;</span> <span class="pre">--role=&quot;roles/storage.admin&quot;</span>
+<span class="pre">gcloud</span> <span class="pre">projects</span> <span class="pre">add-iam-policy-binding</span> <span class="pre">${PROJECT_ID}</span> <span class="pre">--member=&quot;serviceAccount:${SERVICE_ACCOUNT}&quot;</span> <span class="pre">--role=&quot;roles/compute.imageUser&quot;</span>
+<span class="pre">`</span></code></p>
+<p>## 4. Prepare Terraform Credential</p>
+<p>Make sure you are in the cloud-foundation-training repository root directory</p>
+<p>#### Service Account key</p>
+<p>Create and download a service account key for Terraform
+<code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">gcloud</span> <span class="pre">iam</span> <span class="pre">service-accounts</span> <span class="pre">keys</span> <span class="pre">create</span> <span class="pre">sa-cft-training.json</span> <span class="pre">--iam-account=${SERVICE_ACCOUNT}</span>
+<span class="pre">`</span></code></p>
+<p>#### Setup Terraform Credential</p>
+<p>Supply the key to Terraform using the environment variable GOOGLE_CLOUD_KEYFILE_JSON, setting the value to the location of the file.
+<code class="docutils literal notranslate"><span class="pre">`</span>
+<span class="pre">export</span> <span class="pre">GOOGLE_CLOUD_KEYFILE_JSON=&quot;$(pwd)/sa-cft-training.json&quot;</span>
+<span class="pre">export</span> <span class="pre">GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_CLOUD_KEYFILE_JSON</span>
+<span class="pre">`</span></code></p>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">philipldhines</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Philip Hines.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.1.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/feature-a.md.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
