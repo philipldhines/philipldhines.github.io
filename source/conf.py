@@ -16,6 +16,8 @@ release = '0.1'
 
 extensions = []
 
+source_suffix = ['.rst', '.md']
+
 templates_path = ['_templates']
 exclude_patterns = []
 

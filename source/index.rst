@@ -6,15 +6,58 @@
 Welcome to philipldhines's documentation!
 =========================================
 
+
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   feature-a.md
 
 
-Indices and tables
-==================
+Manual 
+======
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+
+.. toctree::
+   :maxdepth: 2
+   :glob:
+
+   docs/manual/index
+
+
+FAQ
+===
+
+.. toctree::
+   :maxdepth: 2
+   :glob:
+
+   docs/faq/index
+
+   docs/cookbooks/index
+
+Development
+===========
+
+.. toctree::
+   :maxdepth: 2
+   :glob:
+
+   docs/development/build/index 
+
+   docs/development/oRFC/index 
+
+Reference 
+=========
+
+.. toctree::
+    :maxdepth: 2
+
+    docs/syntax/index
+    docs/formats/index
+    docs/programs/index
+    docs/examples/index
+
+
+
